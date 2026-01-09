@@ -7,7 +7,7 @@ type Status = "idle" | "waiting" | "matched";
 
 export default function Home() {
   const socketRef = useRef<Socket | null>(null);
-
+  const logBoxRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [input, setInput] = useState("");
   const [log, setLog] = useState<string[]>([]);
@@ -87,16 +87,17 @@ const socket = io("https://anon-chat-3pmu.onrender.com", {
       </div>
 
       <div
-        style={{
-          marginTop: 16,
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          padding: 12,
-          height: 360,
-          overflowY: "auto",
-          background: "#fafafa",
-          whiteSpace: "pre-wrap",
-        }}
+  ref={logBoxRef}
+  style={{
+    marginTop: 16,
+    border: "1px solid #ddd",
+    borderRadius: 8,
+    padding: 12,
+    height: 360,
+    overflowY: "auto",
+    background: "#fafafa",
+    whiteSpace: "pre-wrap",
+  }}
       >
         {log.map((line, i) => (
           <div key={i}>{line}</div>
@@ -119,4 +120,21 @@ const socket = io("https://anon-chat-3pmu.onrender.com", {
     </main>
   );
 }
+
+useEffect(() => {
+  const el = logBoxRef.current;
+  if (!el) return;
+
+  const nearBottom =
+    el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+
+  if (nearBottom) {
+    el.scrollTop = el.scrollHeight;
+  }
+}, [log]);
+
+
+
+
+
 
