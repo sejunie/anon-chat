@@ -142,6 +142,8 @@ useLayoutEffect(() => {
   bottomRef.current?.scrollIntoView({ block: "end" });
 }, [log]);
 
+<main style={{ maxWidth: 720, margin: "40px auto", padding: 16, height: "100vh", overflow: "hidden" }}>
+
 
 
 
