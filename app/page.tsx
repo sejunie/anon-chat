@@ -108,3 +108,5 @@ export default function Home() {
     </main>
   );
 }
+
+const socket = io("https://anon-chat-3pmu.onrender.com");
