@@ -13,7 +13,9 @@ export default function Home() {
   const [log, setLog] = useState<string[]>([]);
 
   useEffect(() => {
-    const socket = io("http://localhost:3001");
+    const socket = io("https://anon-chat-3pmu.onrender.com", {
+  transports: ["websocket"],
+});
     socketRef.current = socket;
 
     socket.on("connect", () => setLog((l) => [...l, "✅ 서버 연결됨"]));
@@ -117,4 +119,3 @@ export default function Home() {
   );
 }
 
-const socket = io("https://anon-chat-3pmu.onrender.com");

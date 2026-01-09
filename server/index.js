@@ -8,6 +8,11 @@ const allowedOrigins = [
   "https://anon-chat-19e390389-sejunies-projects.vercel.app",
 ];
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://anon-chat-19e390389-sejunies-projects.vercel.app",
+];
+
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
