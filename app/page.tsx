@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
 type Status = "idle" | "waiting" | "matched";
@@ -96,6 +96,7 @@ const socket = io("https://anon-chat-3pmu.onrender.com", {
       </div>
 
       <div
+<div
   ref={logBoxRef}
   style={{
     marginTop: 16,
@@ -103,16 +104,17 @@ const socket = io("https://anon-chat-3pmu.onrender.com", {
     borderRadius: 8,
     padding: 12,
     height: 360,
-    overflowY: "auto",
+    overflowY: "scroll",
+    overscrollBehavior: "contain",
     background: "#fafafa",
     whiteSpace: "pre-wrap",
   }}
-      >
-        {log.map((line, i) => (
-          <div key={i}>{line}</div>
-        ))}
+>
+  {log.map((line, i) => (
+    <div key={i}>{line}</div>
+  ))}
   <div ref={bottomRef} />
-      </div>
+</div>
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <input
@@ -131,18 +133,14 @@ const socket = io("https://anon-chat-3pmu.onrender.com", {
   );
 }
 
-useEffect(() => {
+useLayoutEffect(() => {
+  // 먼저 logBox 자체를 강제로 끝까지 내리고,
   const el = logBoxRef.current;
-  if (!el) return;
+  if (el) el.scrollTop = el.scrollHeight;
 
-  const nearBottom =
-    el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-
-  if (nearBottom) {
-    el.scrollTop = el.scrollHeight;
-  }
+  // 그 다음 앵커로 한번 더 고정(렌더/폰트 로딩에도 강함)
+  bottomRef.current?.scrollIntoView({ block: "end" });
 }, [log]);
-
 
 
 
