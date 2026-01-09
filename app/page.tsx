@@ -13,8 +13,9 @@ export default function Home() {
   const [log, setLog] = useState<string[]>([]);
 
   useEffect(() => {
-    const socket = io("https://anon-chat-3pmu.onrender.com", {
+const socket = io("https://anon-chat-3pmu.onrender.com", {
   transports: ["websocket"],
+  upgrade: false,
 });
     socketRef.current = socket;
 

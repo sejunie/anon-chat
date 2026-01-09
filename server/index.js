@@ -82,3 +82,15 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`✅ Socket server listening on port ${PORT}`);
 });
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://anon-chat-19e390389-sejunies-projects.vercel.app",
+];
+
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+  },
+});
