@@ -18,6 +18,14 @@ export default function Home() {
 
     socket.on("connect", () => setLog((l) => [...l, "✅ 서버 연결됨"]));
 
+    socket.on("connect_error", (err) => {
+  setLog((l) => [...l, `❌ 연결 실패: ${err.message}`]);
+});
+
+    socket.on("disconnect", (reason) => {
+  setLog((l) => [...l, `🔌 연결 끊김: ${reason}`]);
+});
+
     socket.on("waiting", () => {
       setStatus("waiting");
       setLog((l) => [...l, "⏳ 상대를 찾는 중..."]);
