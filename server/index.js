@@ -3,8 +3,16 @@ const { Server } = require("socket.io");
 
 const server = http.createServer();
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://anon-chat-19e390389-sejunies-projects.vercel.app",
+];
+
 const io = new Server(server, {
-  cors: { origin: "http://localhost:3000", methods: ["GET", "POST"] },
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+  },
 });
 
 // 랜덤 1:1 매칭 (메모리 MVP)
