@@ -8,15 +8,24 @@ type Status = "idle" | "waiting" | "matched";
 export default function Home() {
   const socketRef = useRef<Socket | null>(null);
   const logBoxRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [input, setInput] = useState("");
   const [log, setLog] = useState<string[]>([]);
+  
 
   useEffect(() => {
 const socket = io("https://anon-chat-3pmu.onrender.com", {
   transports: ["websocket"],
   upgrade: false,
 });
+ useEffect(() => {
+  // 렌더링이 끝난 다음 프레임에 스크롤 이동(튐 방지)
+  requestAnimationFrame(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  });
+}, [log]); 
+
     socketRef.current = socket;
 
     socket.on("connect", () => setLog((l) => [...l, "✅ 서버 연결됨"]));
@@ -102,6 +111,7 @@ const socket = io("https://anon-chat-3pmu.onrender.com", {
         {log.map((line, i) => (
           <div key={i}>{line}</div>
         ))}
+  <div ref={bottomRef} />
       </div>
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
