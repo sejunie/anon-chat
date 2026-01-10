@@ -2,41 +2,36 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import MarketCharts from "./MarketCharts";
 
 type Status = "idle" | "waiting" | "matched";
 
 export default function Home() {
   const socketRef = useRef<Socket | null>(null);
+
   const logBoxRef = useRef<HTMLDivElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const shouldStickToBottomRef = useRef(true);
+
   const [status, setStatus] = useState<Status>("idle");
   const [input, setInput] = useState("");
   const [log, setLog] = useState<string[]>([]);
-  
 
+  // ✅ 소켓 연결 (한 번만)
   useEffect(() => {
-const socket = io("https://anon-chat-3pmu.onrender.com", {
-  transports: ["websocket"],
-  upgrade: false,
-});
- useEffect(() => {
-  // 렌더링이 끝난 다음 프레임에 스크롤 이동(튐 방지)
-  requestAnimationFrame(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  });
-}, [log]); 
+    const socket = io("https://anon-chat-3pmu.onrender.com", {
+      transports: ["websocket"],
+      upgrade: false,
+    });
 
     socketRef.current = socket;
 
     socket.on("connect", () => setLog((l) => [...l, "✅ 서버 연결됨"]));
-
-    socket.on("connect_error", (err) => {
-  setLog((l) => [...l, `❌ 연결 실패: ${err.message}`]);
-    });
-
-    socket.on("disconnect", (reason) => {
-  setLog((l) => [...l, `🔌 연결 끊김: ${reason}`]);
-    });
+    socket.on("connect_error", (err) =>
+      setLog((l) => [...l, `❌ 연결 실패: ${err.message}`])
+    );
+    socket.on("disconnect", (reason) =>
+      setLog((l) => [...l, `🔌 연결 끊김: ${reason}`])
+    );
 
     socket.on("waiting", () => {
       setStatus("waiting");
@@ -63,6 +58,16 @@ const socket = io("https://anon-chat-3pmu.onrender.com", {
     };
   }, []);
 
+  // ✅ 스크롤 튐 방지: 사용자가 아래 근처일 때만 자동 스크롤
+  useLayoutEffect(() => {
+    const el = logBoxRef.current;
+    if (!el) return;
+
+    if (shouldStickToBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [log]);
+
   const find = () => socketRef.current?.emit("find");
 
   const skip = () => {
@@ -80,71 +85,66 @@ const socket = io("https://anon-chat-3pmu.onrender.com", {
   };
 
   return (
-    <main style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700 }}>익명 랜덤 채팅 MVP</h1>
+    <>
+      <MarketCharts />
 
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <button onClick={find} disabled={status !== "idle"}>
-          매칭 시작
-        </button>
-        <button onClick={skip} disabled={status === "idle"}>
-          스킵/나가기
-        </button>
-        <span style={{ marginLeft: 8 }}>
-          상태: <b>{status}</b>
-        </span>
-      </div>
+      <main style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700 }}>익명 랜덤 채팅 MVP</h1>
 
-      <div
-<div
-  ref={logBoxRef}
-  style={{
-    marginTop: 16,
-    border: "1px solid #ddd",
-    borderRadius: 8,
-    padding: 12,
-    height: 360,
-    overflowY: "scroll",
-    overscrollBehavior: "contain",
-    background: "#fafafa",
-    whiteSpace: "pre-wrap",
-  }}
->
-  {log.map((line, i) => (
-    <div key={i}>{line}</div>
-  ))}
-  <div ref={bottomRef} />
-</div>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button onClick={find} disabled={status !== "idle"}>
+            매칭 시작
+          </button>
+          <button onClick={skip} disabled={status === "idle"}>
+            스킵/나가기
+          </button>
+          <span style={{ marginLeft: 8 }}>
+            상태: <b>{status}</b>
+          </span>
+        </div>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={status === "matched" ? "메시지 입력" : "매칭 후 입력 가능"}
-          disabled={status !== "matched"}
-          onKeyDown={(e) => e.key === "Enter" && send()}
-          style={{ flex: 1, padding: 8 }}
-        />
-        <button onClick={send} disabled={status !== "matched"}>
-          보내기
-        </button>
-      </div>
-    </main>
+        <div
+          ref={logBoxRef}
+          onScroll={() => {
+            const el = logBoxRef.current;
+            if (!el) return;
+            const nearBottom =
+              el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+            shouldStickToBottomRef.current = nearBottom;
+          }}
+          style={{
+            marginTop: 16,
+            border: "1px solid #ddd",
+            borderRadius: 8,
+            padding: 12,
+            height: 360,
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+            background: "#fafafa",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {log.map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={
+              status === "matched" ? "메시지 입력" : "매칭 후 입력 가능"
+            }
+            disabled={status !== "matched"}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            style={{ flex: 1, padding: 8 }}
+          />
+          <button onClick={send} disabled={status !== "matched"}>
+            보내기
+          </button>
+        </div>
+      </main>
+    </>
   );
 }
-
-useLayoutEffect(() => {
-  // 먼저 logBox 자체를 강제로 끝까지 내리고,
-  const el = logBoxRef.current;
-  if (el) el.scrollTop = el.scrollHeight;
-
-  // 그 다음 앵커로 한번 더 고정(렌더/폰트 로딩에도 강함)
-  bottomRef.current?.scrollIntoView({ block: "end" });
-}, [log]);
-
-<main style={{ maxWidth: 720, margin: "40px auto", padding: 16, height: "100vh", overflow: "hidden" }}>
-
-
-
-
-
