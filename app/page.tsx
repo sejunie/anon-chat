@@ -17,45 +17,50 @@ export default function Home() {
   const [log, setLog] = useState<string[]>([]);
   const [nickname, setNickname] = useState("");
 
-  // ✅ 소켓 연결 (한 번만)
-  useEffect(() => {
-    const socket = io("http://localhost:3001", {
-  transports: ["polling", "websocket"], // ✅ 폴링으로도 붙고, 되면 웹소켓으로 업그레이드
-});
+ // ✅ 소켓 연결 (한 번만)
+useEffect(() => {
+  const SOCKET_URL =
+    process.env.NEXT_PUBLIC_SOCKET_URL ||
+    "https://anon-chat-3pmu.onrender.com"; // ← Render 서버 주소
 
-    socketRef.current = socket;
+  const socket = io(SOCKET_URL, {
+    transports: ["polling", "websocket"],
+  });
 
-    socket.on("connect", () => setLog((l) => [...l, "✅ 서버 연결됨"]));
-    socket.on("connect_error", (err) =>
-      setLog((l) => [...l, `❌ 연결 실패: ${err.message}`])
-    );
-    socket.on("disconnect", (reason) =>
-      setLog((l) => [...l, `🔌 연결 끊김: ${reason}`])
-    );
+  socketRef.current = socket;
 
-    socket.on("waiting", () => {
-      setStatus("waiting");
-      setLog((l) => [...l, "⏳ 상대를 찾는 중..."]);
-    });
+  socket.on("connect", () => {
+    setLog((l) => [...l, "✅ 서버 연결됨"]);
+  });
 
-    socket.on("matched", () => {
-      setStatus("matched");
-      setLog((l) => [...l, "🎉 매칭 완료!"]);
-    });
+  socket.on("connect_error", (err) => {
+    setLog((l) => [...l, `❌ 연결 실패: ${err.message}`]);
+  });
 
-    socket.on("message", ({ nickname, text }) => {
-  setLog((l) => [...l, `${nickname}: ${text}`]);
-}); 
-    socket.on("partner_left", () => {
-      setStatus("idle");
-      setLog((l) => [...l, "👋 상대가 나갔어"]);
-    });
+  socket.on("waiting", () => {
+    setStatus("waiting");
+    setLog((l) => [...l, "⏳ 상대를 찾는 중..."]);
+  });
 
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, []);
+  socket.on("matched", () => {
+    setStatus("matched");
+    setLog((l) => [...l, "🎉 매칭 완료!"]);
+  });
+
+  socket.on("message", (data) => {
+    setLog((l) => [...l, `${data.nickname}: ${data.text}`]);
+  });
+
+  socket.on("partner_left", () => {
+    setStatus("idle");
+    setLog((l) => [...l, "👋 상대가 나갔어"]);
+  });
+
+  return () => {
+    socket.disconnect();
+    socketRef.current = null;
+  };
+}, []);
 
   // ✅ 스크롤 튐 방지: 사용자가 아래 근처일 때만 자동 스크롤
   useLayoutEffect(() => {
