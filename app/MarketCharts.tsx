@@ -84,7 +84,7 @@ export default function MarketCharts() {
           background: "#fff",
         }}
       >
-        <TradingViewMiniChart symbol="BINANCE:BTCUSDT" />
+        <TradingViewMiniChart symbol="COINBASE:BTCUSD" />
       </div>
     </div>
   );
