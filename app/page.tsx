@@ -15,13 +15,13 @@ export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
   const [input, setInput] = useState("");
   const [log, setLog] = useState<string[]>([]);
+  const [nickname, setNickname] = useState("");
 
   // ✅ 소켓 연결 (한 번만)
   useEffect(() => {
-    const socket = io("https://anon-chat-3pmu.onrender.com", {
-      transports: ["websocket"],
-      upgrade: false,
-    });
+    const socket = io("http://localhost:3001", {
+  transports: ["polling", "websocket"], // ✅ 폴링으로도 붙고, 되면 웹소켓으로 업그레이드
+});
 
     socketRef.current = socket;
 
@@ -43,10 +43,9 @@ export default function Home() {
       setLog((l) => [...l, "🎉 매칭 완료!"]);
     });
 
-    socket.on("message", (text: string) => {
-      setLog((l) => [...l, `상대: ${text}`]);
-    });
-
+    socket.on("message", ({ nickname, text }) => {
+  setLog((l) => [...l, `${nickname}: ${text}`]);
+}); 
     socket.on("partner_left", () => {
       setStatus("idle");
       setLog((l) => [...l, "👋 상대가 나갔어"]);
@@ -68,7 +67,11 @@ export default function Home() {
     }
   }, [log]);
 
-  const find = () => socketRef.current?.emit("find");
+  const find = () => {
+  socketRef.current?.emit("find", {
+    nickname: nickname.trim(),
+  });
+};
 
   const skip = () => {
     socketRef.current?.emit("skip");
@@ -91,9 +94,24 @@ export default function Home() {
       <main style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700 }}>익명 랜덤 채팅 MVP</h1>
 
+<div style={{ marginTop: 16 }}>
+  <input
+    value={nickname}
+    onChange={(e) => setNickname(e.target.value)}
+    placeholder="닉네임 입력 (최대 10자)"
+    maxLength={10}
+    disabled={status !== "idle"}
+    style={{ padding: 8, width: "100%" }}
+  />
+</div>
+
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-          <button onClick={find} disabled={status !== "idle"}>
-            매칭 시작
+<button
+  onClick={find}
+  disabled={status !== "idle" || !nickname.trim()}
+>
+  매칭 시작
+
           </button>
           <button onClick={skip} disabled={status === "idle"}>
             스킵/나가기

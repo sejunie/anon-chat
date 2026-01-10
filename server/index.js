@@ -1,15 +1,16 @@
+const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const cors = require("cors");
 
-const server = http.createServer();
+const app = express();
+app.use(cors());
+const server = http.createServer(app);
 
+// ✅ 개발/배포 허용 Origin
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://anon-chat-19e390389-sejunies-projects.vercel.app",
-];
-
-const allowedOrigins = [
-  "http://localhost:3000",
+  "http://127.0.0.1:3000",
   "https://anon-chat-19e390389-sejunies-projects.vercel.app",
 ];
 
@@ -20,77 +21,81 @@ const io = new Server(server, {
   },
 });
 
-// 랜덤 1:1 매칭 (메모리 MVP)
 let waitingSocket = null;
-const partner = new Map(); // socket.id -> 상대 socket.id
-
-function pair(a, b) {
-  partner.set(a.id, b.id);
-  partner.set(b.id, a.id);
-  a.emit("matched");
-  b.emit("matched");
-}
-
-function unpair(socket) {
-  const otherId = partner.get(socket.id);
-  if (!otherId) return;
-
-  partner.delete(socket.id);
-  partner.delete(otherId);
-
-  const other = io.sockets.sockets.get(otherId);
-  if (other) other.emit("partner_left");
-}
+const partner = new Map(); // socket.id -> partnerId
+const nicknames = new Map(); // socket.id -> nickname
 
 io.on("connection", (socket) => {
-  socket.on("find", () => {
-    if (partner.has(socket.id)) return;
-    if (waitingSocket?.id === socket.id) return;
+  console.log("connected:", socket.id);
 
-    if (waitingSocket && waitingSocket.connected) {
-      const a = waitingSocket;
+  socket.on("find", ({ nickname } = {}) => {
+    nicknames.set(socket.id, (nickname || "익명").toString().slice(0, 10));
+
+    if (waitingSocket && waitingSocket.id !== socket.id) {
+      const other = waitingSocket;
       waitingSocket = null;
-      pair(a, socket);
+
+      partner.set(socket.id, other.id);
+      partner.set(other.id, socket.id);
+
+      socket.emit("matched");
+      other.emit("matched");
     } else {
       waitingSocket = socket;
       socket.emit("waiting");
     }
   });
 
+  socket.on("skip", () => {
+    const otherId = partner.get(socket.id);
+    if (otherId) {
+      const otherSocket = io.sockets.sockets.get(otherId);
+      otherSocket?.emit("partner_left");
+      partner.delete(otherId);
+      partner.delete(socket.id);
+    }
+
+    if (waitingSocket?.id === socket.id) {
+      waitingSocket = null;
+    }
+
+    socket.emit("partner_left");
+  });
+
   socket.on("message", (text) => {
     const otherId = partner.get(socket.id);
     if (!otherId) return;
-    const other = io.sockets.sockets.get(otherId);
-    if (!other) return;
-    other.emit("message", String(text).slice(0, 500));
+
+    const myName = nicknames.get(socket.id) || "익명";
+    const otherSocket = io.sockets.sockets.get(otherId);
+
+    // ✅ 반드시 객체로 보냄 (프론트에서 nickname/text로 표시)
+    otherSocket?.emit("message", {
+      nickname: myName,
+      text,
+    });
   });
 
-  socket.on("skip", () => {
-    if (waitingSocket?.id === socket.id) waitingSocket = null;
-    unpair(socket);
-    socket.emit("skipped");
-  });
+  socket.on("disconnect", (reason) => {
+    console.log("disconnected:", socket.id, reason);
 
-  socket.on("disconnect", () => {
-    if (waitingSocket?.id === socket.id) waitingSocket = null;
-    unpair(socket);
+    const otherId = partner.get(socket.id);
+    if (otherId) {
+      const otherSocket = io.sockets.sockets.get(otherId);
+      otherSocket?.emit("partner_left");
+      partner.delete(otherId);
+      partner.delete(socket.id);
+    }
+
+    if (waitingSocket?.id === socket.id) {
+      waitingSocket = null;
+    }
+
+    nicknames.delete(socket.id);
   });
 });
 
 const PORT = process.env.PORT || 3001;
-
 server.listen(PORT, () => {
   console.log(`✅ Socket server listening on port ${PORT}`);
-});
-
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://anon-chat-19e390389-sejunies-projects.vercel.app",
-];
-
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-  },
 });
