@@ -33,9 +33,9 @@ useEffect(() => {
     setLog((l) => [...l, "✅ 서버 연결됨"]);
   });
 
-  socket.on("connect_error", (err) => {
-    setLog((l) => [...l, `❌ 연결 실패: ${err.message}`]);
-  });
+  ssocket.on("connect_error", (err: any) => {
+  setLog((l) => [...l, `❌ 연결 실패: ${err?.message ?? "unknown error"}`]);
+});
 
   socket.on("waiting", () => {
     setStatus("waiting");
@@ -88,7 +88,7 @@ useEffect(() => {
     const text = input.trim();
     if (!text) return;
     socketRef.current?.emit("message", text);
-    setLog((l) => [...l, `나: ${text}`]);
+    setLog((l) => [...l, `${nickname.trim() || "나"}: ${text}`]);
     setInput("");
   };
 
