@@ -11,8 +11,9 @@ const server = http.createServer(app);
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
-  "https://anon-chat-19e390389-sejunies-projects.vercel.app",
+  "https://anon-chat-tawny.vercel.app", // ✅ 지금 쓰는 Vercel 주소
 ];
+
 
 const io = new Server(server, {
   cors: {
