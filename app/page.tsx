@@ -5,6 +5,7 @@ import { io, Socket } from "socket.io-client";
 import MarketCharts from "./MarketCharts";
 
 type Status = "idle" | "waiting" | "matched";
+type IncomingMessage = { nickname?: string; text?: string } | string;
 
 export default function Home() {
   const socketRef = useRef<Socket | null>(null);
@@ -17,51 +18,65 @@ export default function Home() {
   const [log, setLog] = useState<string[]>([]);
   const [nickname, setNickname] = useState("");
 
- // ✅ 소켓 연결 (한 번만)
-useEffect(() => {
-  const SOCKET_URL =
-    process.env.NEXT_PUBLIC_SOCKET_URL ||
-    "https://anon-chat-3pmu.onrender.com"; // ← Render 서버 주소
+  // ✅ 소켓 연결 (한 번만)
+  useEffect(() => {
+    const SOCKET_URL =
+      process.env.NEXT_PUBLIC_SOCKET_URL || "https://anon-chat-3pmu.onrender.com";
 
- const socket = io(SOCKET_URL, {
-  transports: ["polling", "websocket"],
-  withCredentials: true, // ✅ credentials:true 서버와 짝 맞추기
-});
+    const socket = io(SOCKET_URL, {
+      transports: ["polling", "websocket"],
+      withCredentials: true,
+    });
 
-  socketRef.current = socket;
+    socketRef.current = socket;
 
-  socket.on("connect", () => {
-    setLog((l) => [...l, "✅ 서버 연결됨"]);
-  });
+    socket.on("connect", () => {
+      setLog((l) => [...l, `✅ 서버 연결됨 (${SOCKET_URL})`]);
+    });
 
-  ssocket.on("connect_error", (err: any) => {
-  setLog((l) => [...l, `❌ 연결 실패: ${err?.message ?? "unknown error"}`]);
-});
+    // ✅ 여기 오타 수정: ssocket -> socket
+    socket.on("connect_error", (err: any) => {
+      setLog((l) => [
+        ...l,
+        `❌ 연결 실패: ${err?.message ?? "unknown error"}`,
+      ]);
+    });
 
-  socket.on("waiting", () => {
-    setStatus("waiting");
-    setLog((l) => [...l, "⏳ 상대를 찾는 중..."]);
-  });
+    socket.on("disconnect", (reason) => {
+      setLog((l) => [...l, `🔌 연결 끊김: ${reason}`]);
+      setStatus("idle");
+    });
 
-  socket.on("matched", () => {
-    setStatus("matched");
-    setLog((l) => [...l, "🎉 매칭 완료!"]);
-  });
+    socket.on("waiting", () => {
+      setStatus("waiting");
+      setLog((l) => [...l, "⏳ 상대를 찾는 중..."]);
+    });
 
-  socket.on("message", (data) => {
-    setLog((l) => [...l, `${data.nickname}: ${data.text}`]);
-  });
+    socket.on("matched", () => {
+      setStatus("matched");
+      setLog((l) => [...l, "🎉 매칭 완료!"]);
+    });
 
-  socket.on("partner_left", () => {
-    setStatus("idle");
-    setLog((l) => [...l, "👋 상대가 나갔어"]);
-  });
+    socket.on("message", (data: IncomingMessage) => {
+      if (typeof data === "string") {
+        setLog((l) => [...l, `상대: ${data}`]);
+        return;
+      }
+      const name = data?.nickname || "상대";
+      const text = data?.text || "";
+      setLog((l) => [...l, `${name}: ${text}`]);
+    });
 
-  return () => {
-    socket.disconnect();
-    socketRef.current = null;
-  };
-}, []);
+    socket.on("partner_left", () => {
+      setStatus("idle");
+      setLog((l) => [...l, "👋 상대가 나갔어"]);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, []);
 
   // ✅ 스크롤 튐 방지: 사용자가 아래 근처일 때만 자동 스크롤
   useLayoutEffect(() => {
@@ -74,10 +89,8 @@ useEffect(() => {
   }, [log]);
 
   const find = () => {
-  socketRef.current?.emit("find", {
-    nickname: nickname.trim(),
-  });
-};
+    socketRef.current?.emit("find", { nickname: nickname.trim() });
+  };
 
   const skip = () => {
     socketRef.current?.emit("skip");
@@ -88,7 +101,10 @@ useEffect(() => {
   const send = () => {
     const text = input.trim();
     if (!text) return;
+
+    // 서버는 message(text) 받도록 해둔 상태라 text만 보냄
     socketRef.current?.emit("message", text);
+
     setLog((l) => [...l, `${nickname.trim() || "나"}: ${text}`]);
     setInput("");
   };
@@ -100,28 +116,26 @@ useEffect(() => {
       <main style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700 }}>익명 랜덤 채팅 MVP</h1>
 
-<div style={{ marginTop: 16 }}>
-  <input
-    value={nickname}
-    onChange={(e) => setNickname(e.target.value)}
-    placeholder="닉네임 입력 (최대 10자)"
-    maxLength={10}
-    disabled={status !== "idle"}
-    style={{ padding: 8, width: "100%" }}
-  />
-</div>
+        <div style={{ marginTop: 16 }}>
+          <input
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            placeholder="닉네임 입력 (최대 10자)"
+            maxLength={10}
+            disabled={status !== "idle"}
+            style={{ padding: 8, width: "100%" }}
+          />
+        </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-<button
-  onClick={find}
-  disabled={status !== "idle" || !nickname.trim()}
->
-  매칭 시작
-
+          <button onClick={find} disabled={status !== "idle" || !nickname.trim()}>
+            매칭 시작
           </button>
+
           <button onClick={skip} disabled={status === "idle"}>
             스킵/나가기
           </button>
+
           <span style={{ marginLeft: 8 }}>
             상태: <b>{status}</b>
           </span>
@@ -132,8 +146,7 @@ useEffect(() => {
           onScroll={() => {
             const el = logBoxRef.current;
             if (!el) return;
-            const nearBottom =
-              el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+            const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
             shouldStickToBottomRef.current = nearBottom;
           }}
           style={{
@@ -157,9 +170,7 @@ useEffect(() => {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              status === "matched" ? "메시지 입력" : "매칭 후 입력 가능"
-            }
+            placeholder={status === "matched" ? "메시지 입력" : "매칭 후 입력 가능"}
             disabled={status !== "matched"}
             onKeyDown={(e) => e.key === "Enter" && send()}
             style={{ flex: 1, padding: 8 }}
