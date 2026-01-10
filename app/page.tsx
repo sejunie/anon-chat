@@ -24,7 +24,7 @@ useEffect(() => {
     "https://anon-chat-3pmu.onrender.com"; // ← Render 서버 주소
 
   const socket = io(SOCKET_URL, {
-    transports: ["polling", "websocket"],
+    transports: ["websocket"],
   });
 
   socketRef.current = socket;

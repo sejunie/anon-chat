@@ -25,10 +25,8 @@ const server = http.createServer(app);
  * ✅ Socket.IO CORS
  */
 const io = new Server(server, {
-  cors: {
-    origin: true,
-    methods: ["GET", "POST"],
-  },
+  cors: { origin: true, methods: ["GET", "POST"] },
+  transports: ["websocket"], // ✅ websocket만
 });
 
 // ====== 이하 네 채팅 로직 그대로 ======
