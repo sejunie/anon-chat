@@ -17,8 +17,26 @@ const allowedOrigins = [
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // socket.io는 origin이 없는 경우도 있음(서버-서버/로컬 테스트)
+      if (!origin) return callback(null, true);
+
+      const allowList = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://anon-chat-tawny.vercel.app",
+        "https://anon-chat-19e390389-sejunies-projects.vercel.app",
+      ];
+
+      // ✅ 모든 vercel.app 서브도메인 허용 (배포할 때 도메인 바뀌어도 OK)
+      if (origin.endsWith(".vercel.app")) return callback(null, true);
+
+      if (allowList.includes(origin)) return callback(null, true);
+
+      return callback(new Error("Not allowed by CORS: " + origin));
+    },
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
