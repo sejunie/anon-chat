@@ -23,9 +23,10 @@ useEffect(() => {
     process.env.NEXT_PUBLIC_SOCKET_URL ||
     "https://anon-chat-3pmu.onrender.com"; // ← Render 서버 주소
 
-  const socket = io(SOCKET_URL, {
-    transports: ["websocket"],
-  });
+ const socket = io(SOCKET_URL, {
+  transports: ["polling", "websocket"],
+  withCredentials: true, // ✅ credentials:true 서버와 짝 맞추기
+});
 
   socketRef.current = socket;
 
