@@ -74,18 +74,18 @@ export default function MarketCharts() {
       >
         <TradingViewMiniChart symbol="NASDAQ:NDX" />
       </div>
+
+      <div
+        style={{
+          height: 160,
+          border: "1px solid #ddd",
+          borderRadius: 10,
+          overflow: "hidden",
+          background: "#fff",
+        }}
+      >
+        <TradingViewMiniChart symbol="BINANCE:BTCUSDT" />
+      </div>
     </div>
   );
 }
-
-<div
-  style={{
-    height: 160,
-    border: "1px solid #ddd",
-    borderRadius: 10,
-    overflow: "hidden",
-    background: "#fff",
-  }}
->
-  <TradingViewMiniChart symbol="BINANCE:BTCUSDT" />
-</div>
