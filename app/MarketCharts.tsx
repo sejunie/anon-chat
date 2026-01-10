@@ -77,3 +77,15 @@ export default function MarketCharts() {
     </div>
   );
 }
+
+<div
+  style={{
+    height: 160,
+    border: "1px solid #ddd",
+    borderRadius: 10,
+    overflow: "hidden",
+    background: "#fff",
+  }}
+>
+  <TradingViewMiniChart symbol="BINANCE:BTCUSDT" />
+</div>
